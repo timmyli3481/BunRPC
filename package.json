@@ -24,7 +24,7 @@
     "type": "module",
     "packageManager": "bun@1.0.25",
     "scripts": {
-        "build": "tsc --declaration --emitDeclarationOnly && bun build ./src/index.ts --outdir ./dist --target bun",
+        "build": "tsc",
         "test": "bun test",
         "lint": "tsc --noEmit",
         "clean": "rm -rf dist",
