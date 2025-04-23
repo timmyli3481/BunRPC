@@ -8,7 +8,7 @@ import { z } from "zod";
  * - If a key is a Procedure<I, O>, expose (params: z.infer<I>) => Promise<O>
  * - If a key is a nested router, recurse
  */
-type RpcClient<TRouter> = {
+export type RpcClient<TRouter> = {
   [K in keyof TRouter]: TRouter[K] extends Procedure<infer I, infer O>
     ? (params: z.infer<I>) => Promise<O>
     : TRouter[K] extends Record<string, any>
