@@ -1,0 +1,15 @@
+[install]
+# Save exact version in package.json
+exact = false
+
+[install.cache]
+# Enable the HTTP cache
+enable = true
+
+[test]
+# Configure default test options
+coverage = false
+
+[run]
+# Default loading mode for JavaScript files
+loader = "tsx" 

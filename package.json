@@ -1,0 +1,32 @@
+{
+    "name": "bunrpc",
+    "version": "0.0.1",
+    "description": "A tRPC-style IPC RPC library for Bun subprocesses using Zod for validation.",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "keywords": [
+        "bun",
+        "ipc",
+        "rpc",
+        "zod",
+        "trpc"
+    ],
+    "author": "Timmy Li <timmyli3481@gmail.com>",
+    "license": "MIT",
+    "type": "module",
+    "packageManager": "bun@1.0.25",
+    "scripts": {
+        "build": "bun build ./src/index.ts --outdir ./dist --target node",
+        "test": "bun test",
+        "lint": "tsc --noEmit",
+        "clean": "rm -rf dist",
+        "prepublishOnly": "bun run clean && bun run build"
+    },
+    "dependencies": {
+        "zod": "^3.24.3"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.2.10",
+        "typescript": "^5.8.3"
+    }
+}
