@@ -30,8 +30,12 @@ jobs:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -41,12 +45,30 @@ jobs:
       - name: Install dependencies
         run: bun install
       
+      - name: Generate TypeScript declarations
+        run: |
+          npx tsc --declaration --emitDeclarationOnly --outDir dist
+      
       - name: Build
         run: bun run build
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+      
+      - name: Bump version
+        id: bump_version
+        run: |
+          npm version patch
+          echo "NEW_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      
+      - name: Push version bump
+        run: git push --follow-tags
       
       - name: Publish to npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-          bun publish --access public
+          npm publish --access public
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }} 

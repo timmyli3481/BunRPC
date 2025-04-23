@@ -2,7 +2,7 @@
 
 A tRPC-style IPC RPC library for Bun subprocesses using Zod for validation.
 
-[![CI/CD](https://github.com/yourusername/bunrpc/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/bunrpc/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/timmyli3481/bunrpc/actions/workflows/ci.yml/badge.svg)](https://github.com/timmyli3481/bunrpc/actions/workflows/ci.yml)
 
 ## Installation
 
