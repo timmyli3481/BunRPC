@@ -1,11 +1,13 @@
 // src/client.ts
-import { Subprocess } from "bun";
+import { spawn, Subprocess } from "bun";
 import type { Procedure } from "./rpc";
 import { z } from "zod";
 
-// Recursively map your router type to a client API:
-// - If a key is a Procedure<I, O>, make it (params: z.infer<I>) => Promise<O>
-// - If a key is a nested object, recurse
+/**
+ * Map your router¡¯s shape into a client API:
+ * - If a key is a Procedure<I, O>, expose (params: z.infer<I>) => Promise<O>
+ * - If a key is a nested router, recurse
+ */
 type RpcClient<TRouter> = {
   [K in keyof TRouter]: TRouter[K] extends Procedure<infer I, infer O>
     ? (params: z.infer<I>) => Promise<O>
@@ -14,21 +16,13 @@ type RpcClient<TRouter> = {
     : never;
 };
 
-type BunSpawnArgs = Parameters<typeof Bun.spawn>;
-type SpawnCmd = BunSpawnArgs[0];
-type SpawnOpts = Omit<BunSpawnArgs[1], "ipc">;
-
 /**
- * Spawn a Bun subprocess exactly like Bun.spawn(cmd, opts),
- * but inject your own IPC handler to wire up RPC.
- *
- * @param cmd Bun.spawn command (string or string[])
- * @param opts Bun.spawn options, except `ipc`
- * @returns an RPC client proxy matching your router, plus the raw child
+ * Spawn a Bun subprocess exactly like `spawn(cmd, opts)`,
+ * but inject our IPC handler so you get a type-safe RPC client.
  */
 export function spawnRpcClient<TRouter extends Record<string, any>>(
-  cmd: SpawnCmd,
-  opts?: SpawnOpts
+  cmd: Parameters<typeof spawn>[0],
+  opts?: Omit<Parameters<typeof spawn>[1], "ipc">
 ): { client: RpcClient<TRouter>; child: Subprocess } {
   let counter = 0;
   const pending = new Map<
@@ -36,8 +30,8 @@ export function spawnRpcClient<TRouter extends Record<string, any>>(
     { resolve(v: any): void; reject(e: any): void }
   >();
 
-  // Spawn with our injected IPC handler
-  const child = Bun.spawn(cmd, {
+  // 1) Spawn with injected IPC handler
+  const child = spawn(cmd, {
     ...(opts ?? {}),
     ipc(message) {
       const { id, result, error } = message as {
@@ -48,26 +42,30 @@ export function spawnRpcClient<TRouter extends Record<string, any>>(
       const entry = pending.get(id);
       if (!entry) return;
       pending.delete(id);
-      if (error) entry.reject(new Error(error));
-      else entry.resolve(result);
+      error ? entry.reject(new Error(error)) : entry.resolve(result);
     },
   });
 
-  // Build a Proxy that sends {id, method, params} and returns a Promise
-  const client = new Proxy(
-    {},
-    {
-      get(_, key: string) {
-        // Accessing client.someMethod or client.nested.method
-        return (params: any) =>
-          new Promise((resolve, reject) => {
-            const id = ++counter;
-            pending.set(id, { resolve, reject });
-            child.send({ id, method: key, params });
-          });
+  // 2) Build a nested Proxy for any depth of router
+  function buildProxy(path = ""): any {
+    return new Proxy(() => {}, {
+      get(_, prop: string) {
+        const nextPath = path ? `${path}.${prop}` : prop;
+        return buildProxy(nextPath);
       },
-    }
-  ) as RpcClient<TRouter>;
+      apply(_, __, [params]: [any]) {
+        return new Promise((resolve, reject) => {
+          const id = ++counter;
+          pending.set(id, { resolve, reject });
+          child.send({ id, method: path, params });
+        });
+      },
+    });
+  }
 
-  return { client, child };
+  // 3) Return the typed client and raw child
+  return {
+    client: buildProxy() as RpcClient<TRouter>,
+    child,
+  };
 }
