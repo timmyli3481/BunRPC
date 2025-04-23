@@ -16,7 +16,7 @@
     "type": "module",
     "packageManager": "bun@1.0.25",
     "scripts": {
-        "build": "bun build ./src/index.ts --outdir ./dist --target node",
+        "build": "bun build ./src/index.ts --outdir ./dist --target bun",
         "test": "bun test",
         "lint": "tsc --noEmit",
         "clean": "rm -rf dist",
